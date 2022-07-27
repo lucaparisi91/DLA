@@ -7,8 +7,8 @@
 
 TEST( DLA , init)
 {
-    int N=1000;
-    real_t lBox {10};
+    int N=100;
+    real_t lBox {100};
     real_t radius {1};
 
 
@@ -28,7 +28,7 @@ TEST( DLA , init)
     real_t sigma=0.1;
     geometry geo(lBox);
 
-    DLA alg(sigma,radius,geo);
+    DLA alg({sigma,sigma,sigma},radius,geo);
     
 
     alg.initializeCluster(particles);
@@ -51,7 +51,8 @@ TEST( DLA , init)
     
     }
 
-
+    if ( particles.getNCluster() > 1 )
+    {
     for(int i=0;i< particles.getNCluster();i++)
     {
         bool inCluster=false;
@@ -80,7 +81,7 @@ TEST( DLA , init)
     }
 
 
-
+    }
 
     alg.advance(particles,randG);
 

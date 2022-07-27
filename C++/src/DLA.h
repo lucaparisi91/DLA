@@ -28,8 +28,6 @@ class cluster_t
 
     void addToCluster( size_t i);
 
-
-
     private:
 
     tensor_t _free;
@@ -45,24 +43,25 @@ class DLA
 {
     public:
 
-    DLA(real_t sigma,real_t radius,geometry_t geo) : _sigma(sigma),_radius(radius),_geo(geo) {};
-    
-    void setSigma(real_t sigma) {_sigma=sigma;}
+
+    DLA(std::array<real_t,DIMENSIONS> sigma,real_t radius,geometry_t geo) : _sigma(sigma),_radius(radius),_geo(geo) {};
+
+
+    void setSigma(std::array<real_t,DIMENSIONS> sigma) {_sigma=sigma;}
     void setParticleRadius(real_t radius){_radius=radius;};
     void setGeometry( const geometry_t & geo) { _geo=geo;};
 
 
     void initializeCluster(state_t & state);
-
-    void advance(state_t & state,randState_t & randG);
     
+    void advance(state_t & state,randState_t & randG);
 
     private:
 
     bool addToClusterCondition(const state_t & state,size_t i);
 
 
-    real_t _sigma;
+    std::array<real_t,DIMENSIONS> _sigma;
     real_t _radius;
 
     geometry_t _geo;

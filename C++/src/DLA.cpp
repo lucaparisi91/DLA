@@ -53,8 +53,8 @@ void DLA::initializeCluster( state_t & state )
 
 void DLA::advance( state_t & state,randState_t & randG )
 {
-    _noise.resize(state.getN()    );
-    norm.generate(_noise.begin(),_noise.begin() + state.getNFree(),randG);
+    _noise.resize(state.getN() * DIMENSIONS    );
+    norm.generate(_noise.begin(),_noise.begin() + state.getNFree()*DIMENSIONS,randG);
     size_t i=0,ii=0;
     auto & free = state.getFree();
 
@@ -62,7 +62,9 @@ void DLA::advance( state_t & state,randState_t & randG )
     {
         for(int d=0;d<DIMENSIONS;d++)
         {
-            free(i,d)=free(i,d) + _sigma*_noise[ii];
+            free(i,d)=free(i,d) + _sigma[d]*_noise[ii];
+            ii++;
+            free(i,d)=_geo.pbc(free(i,d),d);
         }
 
         if (addToClusterCondition(state,i) )
@@ -74,7 +76,6 @@ void DLA::advance( state_t & state,randState_t & randG )
             i++;
         }
 
-        ii++;
     }
 
 }
@@ -84,7 +85,7 @@ bool DLA::addToClusterCondition(const state_t & state,size_t i)
 
     const auto & _freeParticles=state.getFree();
     const auto & _clusterParticles=state.getCluster();
-
+    
     for(int j=0;j<state.getNCluster();j++)
     {
         real_t r2=0;
