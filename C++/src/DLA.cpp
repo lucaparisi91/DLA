@@ -1,5 +1,6 @@
 #include "DLA.h"
-
+#include <iostream>
+namespace offMesh{
 void cluster_t::addToCluster( size_t i)
 {
     // !!! Warning: particle orderings is not mantained after assignment to cluster
@@ -11,7 +12,7 @@ void cluster_t::addToCluster( size_t i)
     }
     _nCluster++;
 
-    // remove from list of free particles. To avoid holdes, swap the emptied position with the last valid free particles. 
+    // remove from list of free particles. To avoid holes, swap the emptied position with the last valid free particles. 
     for(int d=0;d<DIMENSIONS;d++)
     {
         std::swap(_free( i,d),_free(_nFree-1,d)  );
@@ -47,6 +48,7 @@ void DLA::initializeCluster( state_t & state )
 
         }
     } while (  state.getNFree() != nFreeOld); 
+
 
 }
 
@@ -95,13 +97,15 @@ bool DLA::addToClusterCondition(const state_t & state,size_t i)
             r2+=diff*diff;
         }
 
-
         if (r2 <= _radius*_radius)
         {
+            //std::cout << sqrt(r2) << std::endl;
             return true;
         }
     }
 
     return false;
+
+}
 
 }

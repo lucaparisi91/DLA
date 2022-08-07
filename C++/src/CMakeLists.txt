@@ -1,7 +1,7 @@
 include(../cmake/init.cmake)
 
 
-set ( SOURCES DLA.cpp)
+set ( SOURCES DLA.cpp lattice/lattice.cpp lattice/particles.cpp moves.cpp)
 
 
  # -------  Set up the static dmc library

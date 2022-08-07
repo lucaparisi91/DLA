@@ -1,6 +1,6 @@
 include(../cmake/init.cmake)
 
-set(SOURCES tst-DLA.cpp tst-randomGenerator.cpp
+set(SOURCES tst-DLA.cpp tst-randomGenerator.cpp tst-lattice.cpp
 )
 
 

@@ -13,22 +13,21 @@ TEST( DLA , init)
 
 
     randState_t randG(567);
-    state_t freeParticles(N,DIMENSIONS);
-    state_t clusterParticles(N,DIMENSIONS);
+    offMesh::state_t freeParticles(N,DIMENSIONS);
+    offMesh::state_t clusterParticles(N,DIMENSIONS);
 
-    randomGenerator::uniformDistribution uniform(-lBox/2,lBox/2);
+    randomGenerator::uniformRealDistribution<double> uniform(-lBox/2,lBox/2);
 
-    cluster_t particles( N - 1,1);
+    offMesh::cluster_t particles( N - 1,1);
     auto & free = particles.getFree();
     auto & cluster = particles.getCluster();
-
 
     uniform.generate(free.data() , free.data() + free.size() , randG );
     uniform.generate(cluster.data() , cluster.data() + cluster.size() , randG );
     real_t sigma=0.1;
-    geometry geo(lBox);
+    offMesh::geometry geo(lBox);
 
-    DLA alg({sigma,sigma,sigma},radius,geo);
+    offMesh::DLA alg( { TRUNC(sigma,sigma,sigma) },radius,geo);
     
 
     alg.initializeCluster(particles);

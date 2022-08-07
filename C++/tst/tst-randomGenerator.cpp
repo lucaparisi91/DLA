@@ -36,7 +36,7 @@ TEST( random, uniform)
 
     randomGenerator::cppRandomState randG(567);
 
-    randomGenerator::uniformDistribution dist(0,1);
+    randomGenerator::uniformRealDistribution<double> dist(0,1);
 
     dist.generate(x.begin(),x.end(),randG);
 

@@ -40,11 +40,12 @@ public:
 };
 
 
-class uniformDistribution
+template<class T>
+class uniformRealDistribution
 {
 public:
 
-    uniformDistribution( double minX, double maxX) : distributionD(minX,maxX) {}
+    uniformRealDistribution( T minX, T maxX) : distributionD(minX,maxX) {}
 
 
     template<class it1_t,class it2_t >
@@ -56,11 +57,33 @@ public:
         }
     }
 
+    private:
+
+    std::uniform_real_distribution<T> distributionD;
+
+};
+
+
+template<class T>
+class uniformIntDistribution
+{
+public:
+
+    uniformIntDistribution( T minX, T maxX) : _distribution(minX,maxX) {}
+
+
+    template<class it1_t,class it2_t >
+    void generate( const it1_t & it1,const it2_t & it2,cppRandomState & randState)
+    {
+        for( auto it = it1 ; it < it2 ; it++)
+        {
+            *it=_distribution(randState.getGenerator() );
+        }
+    }
 
     private:
 
-    std::uniform_real_distribution<double> distributionD;
-
+    std::uniform_int_distribution<T> _distribution;
 
 };
 

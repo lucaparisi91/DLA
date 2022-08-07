@@ -3,14 +3,16 @@
 #include <unsupported/Eigen/CXX11/Tensor>
 
 using real_t = double;
-#define DIMENSIONS 3
+#define DIMENSIONS 2
 
+#if DIMENSIONS == 2
+#define TRUNC(a,b,c) a,b
+#endif
 
-using tensor_t = Eigen::Tensor<real_t, 2> ;
+#if DIMENSIONS == 3
+#define TRUNC(a,b,c) a,b,c
+#endif
 
-class geometry;
-
-using geometry_t = geometry;
 
 
 #define START_TIMER(a) 
@@ -23,8 +25,30 @@ namespace randomGenerator
 
 using  randState_t=randomGenerator::cppRandomState;
 
-class cluster_t;
 
-using state_t = cluster_t;
+namespace offMesh
+{
+    class cluster_t;
+
+    using state_t = cluster_t;
+    using tensor_t = Eigen::Tensor<real_t, 2> ;
+
+    class geometry;
+
+    using geometry_t = geometry;
+
+};
+
+
+template<int DIM> class particles;
+
+namespace mesh
+{
+    
+    class clusterOnLattice;
+    using state_t = clusterOnLattice;
+    using particles_t = particles<2>;
+};
+
 
 #endif

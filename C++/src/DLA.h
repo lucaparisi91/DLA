@@ -3,6 +3,8 @@
 #include "geometry.h"
 #include "randomGenerator.h"
 
+namespace offMesh
+{ 
 class cluster_t 
 {
     public:
@@ -12,6 +14,8 @@ class cluster_t
         _free.resize(_N,DIMENSIONS);
         _cluster.resize(_N,DIMENSIONS);
     }
+
+    
 
 
     auto & getFree() { return _free;}
@@ -67,5 +71,7 @@ class DLA
     geometry_t _geo;
     std::vector<real_t> _noise;
     randomGenerator::normalDistribution norm;
+
+};
 
 };

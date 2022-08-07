@@ -6,8 +6,8 @@
 #include "DLA.h"
 #include <memory>
 
-
 namespace py = pybind11;
+using namespace offMesh;
 
 
 auto toTensor(const py::array_t<double> & x)
@@ -173,11 +173,11 @@ class py_dla
 
         geometry geo( {_box[0],_box[1],_box[2]});
 
-        std::array<real_t,DIMENSIONS> _sigmaArr {_sigma[0],_sigma[1],_sigma[2]};
+        std::array<real_t,DIMENSIONS> _sigmaArr { TRUNC(_sigma[0],_sigma[1],_sigma[2] )  };
         alg=std::make_unique<DLA>( _sigmaArr ,_radius,geo);
         _particles = std::make_unique<cluster_t>(toParticles(x,y) );
 
-        //alg->initializeCluster(*_particles);
+        alg->initializeCluster(*_particles);
 
     };
 
