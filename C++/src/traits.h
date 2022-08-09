@@ -48,6 +48,8 @@ namespace mesh
     class clusterOnLattice;
     using state_t = clusterOnLattice;
     using particles_t = particles<2>;
+    using index_t = size_t;
+    
 };
 
 

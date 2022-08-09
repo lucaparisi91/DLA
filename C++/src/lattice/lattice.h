@@ -84,15 +84,11 @@ class lattice
     int nCellsNeighbourhood() const noexcept {return _nNeighboursPerCell;}
 
 
-    int getNeighbour(index_t iCell, index_t iNeighboorhood ) const noexcept  {return _neighbourOffsets[iNeighboorhood] + iCell; } // includes the cell i from some non zero offset
+    int getNeighbour(index_t iCell, index_t iNeighboorhood ) const noexcept  {return _neighboursPerCell[iCell][iNeighboorhood];  } // includes the cell i from some non zero offset
 
 
     inline auto  lowIndex(int d) const noexcept {return _nGhosts[d];}
     inline auto  highIndex(int d) const noexcept {return _shape[d] - 1 + _nGhosts[d];}
-
-
-
-    inline real_t wrap( index_t iCell,int d) const noexcept { return _wrap[d][iCell];} // return -1/0/1 * lBox[d] depending if the cell is on the low face, bulk , high face in direction d
 
     bool checkNeighbourIndexing();
     
@@ -100,7 +96,7 @@ class lattice
     private:
 
     void initialize();
-    void buildIndexOffsets();
+    void buildIndexNeighbours();
 
     void buildBC();
   
@@ -121,9 +117,9 @@ class lattice
     std::array<index_t, DIM > _nGhosts;
     std::array<index_t, DIM> _extendedShape;
 
-    std::array<index_t, 27> _neighbourOffsets;
+    std::vector<std::vector<size_t> > _neighboursPerCell;
 
-    std::array<std::vector<real_t> ,DIM > _wrap;
+
 };
 
 

@@ -52,151 +52,95 @@ void lattice<DIM>::initialize()
             _size*=_shape[d];
             _extendedSize*=_extendedShape[d];
         }
-    buildBC();
-    buildIndexOffsets();
+    buildIndexNeighbours();
 }
 
-template<>
-void lattice<3>::buildBC()
+auto pbc( int i, int shape)
 {
-    for(int d=0;d<3;d++)
-    {
-        _wrap[d].resize(extendedSize() , 0 );
-    }
-
-    for (index_t i=0;i<_extendedShape[0];i++)
-        for (index_t j=0;j<_extendedShape[1];j++)
-            for (index_t k=0;k<_extendedShape[2];k++)
-            {
-                int currentIndex=index(i,j,k);
-                std::array<index_t,3> index3d{i,j,k};
-
-                for(int d=0;d<3;d++)
-                {
-                    if (index3d[d]<lowIndex(d))
-                    {
-                        _wrap[d][currentIndex]=-_lBox[d];
-                    }
-                    else if (index3d[d]>highIndex(d))
-                    {
-                        _wrap[d][currentIndex]=+_lBox[d];
-                    }
-                    else
-                    {
-                        _wrap[d][currentIndex]=0;
-                    }
-                    
-                }
-            
-            }
-    
+    return i>=shape ? i - shape : (
+        i<0 ? i + shape : i 
+    );
 }
 
 template<>
-void lattice<2>::buildBC()
-{
-    for(int d=0;d<2;d++)
-    {
-        _wrap[d].resize(extendedSize() , 0 );
-    }
-
-    for (index_t  i=0;i<_extendedShape[0];i++)
-        for (index_t  j=0;j<_extendedShape[1];j++)
-            {
-                auto  currentIndex=index(i,j);
-                std::array<index_t,2> index2d{i,j};
-
-                for(int d=0;d<2;d++)
-                {
-                    if (index2d[d]<lowIndex(d))
-                    {
-                        _wrap[d][currentIndex]=-_lBox[d];
-                    }
-                    else if (index2d[d]>highIndex(d))
-                    {
-                        _wrap[d][currentIndex]=+_lBox[d];
-                    }
-                    else
-                    {
-                        _wrap[d][currentIndex]=0;
-                    }
-                    
-                }
-            
-            }
-    
-}
-
-template<>
-void lattice<1>::buildBC()
-{
-    for(int d=0;d<1;d++)
-    {
-        _wrap[d].resize(extendedSize() , 0 );
-    }
-
-    for (index_t i=0;i<_extendedShape[0];i++)
-            {
-                int currentIndex=index(i);
-                
-
-                    if ( i <lowIndex(0))
-                    {
-                        _wrap[0][currentIndex]=-_lBox[0];
-                    }
-                    else if ( i >highIndex(0))
-                    {
-                        _wrap[0][currentIndex]=+_lBox[0];
-                    }
-                    else
-                    {
-                        _wrap[0][currentIndex]=0;
-                    }
-                    
-            }   
-}
-
-template<>
-void lattice<3>::buildIndexOffsets()
+void lattice<3>::buildIndexNeighbours()
 {
     int t=0;
-    for (index_t k=0;k<=2;k++)
-        for (index_t j=0;j<=2;j++)
-            for (index_t i=0;i<=2;i++)
-            {
-                if ( not ( i==1 and j==1 and k==1 ) )
-                {
-                    _neighbourOffsets[t]=index(i,j,k) - index(index_t(1),index_t(1),index_t(1));
-                    t++;
-                }
+    _neighboursPerCell.resize(size());
+
+    for (int k=lowIndex(2);k<=highIndex(2);k++)
+        for (int j=lowIndex(1);j<=highIndex(1);j++)
+            for ( int  i=lowIndex(0);i<=highIndex(0);i++)
+            {   
+                    auto iCell = index(i,j,k);
+
+                    _neighboursPerCell[iCell].resize( nNeighbours(3));
+
+                    int iN=0;
+                    for(int ii=-1;ii<=1;ii++)
+                        for(int jj=-1;jj<=1;jj++)
+                            for(int kk=-1;kk<=1;kk++)
+                            {    
+                                if (not(ii==0 and jj==0 and kk==0))
+                                {
+                                    _neighboursPerCell[iCell][iN]=index( 
+                                        pbc(i +ii, _shape[0]),
+                                        pbc(j +jj, _shape[1]),
+                                        pbc(k +kk, _shape[2])
+                                    );
+                                    iN++;
+
+                                }
+                                
+                            }
             }
 
 }
+
 
 
 template<>
-void lattice<2>::buildIndexOffsets()
+void lattice<2>::buildIndexNeighbours()
 {
     int t=0;
-        for (index_t j=0;j<=2;j++)
-            for (index_t i=0;i<=2;i++)
-            {
-                if ( not ( i==1 and j==1 ) )
-                {
-                _neighbourOffsets[t]=index(i,j) - index( index_t(1),index_t(1));
-                t++;
-                }
+    _neighboursPerCell.resize(size());
+
+        for (int j=lowIndex(1);j<=highIndex(1);j++)
+            for ( int  i=lowIndex(0);i<=highIndex(0);i++)
+            {   
+                    auto iCell = index(i,j);
+
+                    _neighboursPerCell[iCell].resize( nNeighbours(2));
+
+                    int iN=0;
+                    for(int ii=-1;ii<=1;ii++)
+                        for(int jj=-1;jj<=1;jj++)
+                            {    
+                                if (not(ii==0 and jj==0))
+                                {
+                                    _neighboursPerCell[iCell][iN]=index( 
+                                        pbc(i +ii, _shape[0]),
+                                        pbc(j +jj, _shape[1])
+                                                                                                                );
+                                    iN++;
+
+                                }
+                                
+                            }
             }
+
 }
+
+
 
 
 template<>
 bool lattice<3>::checkNeighbourIndexing()
 {
 
-    for (auto  i=lowIndex(0);i<=highIndex(0);i++)
-        for (auto  j=lowIndex(1);j<=highIndex(1);j++)
-            for (auto  k=lowIndex(2);k<=highIndex(2);k++)
+    for (int  i=lowIndex(0);i<=highIndex(0);i++)
+        for (int   j=lowIndex(1);j<=highIndex(1);j++)
+            for (int   k=lowIndex(2);k<=highIndex(2);k++)
             {
 
                 auto iCell = index(i,j,k);
@@ -205,8 +149,10 @@ bool lattice<3>::checkNeighbourIndexing()
                     for (int jj=-1;jj<=1;jj++)
                         for (int kk=-1;kk<=1;kk++)
                         {
-
-                            int iCell2=index(i+ii,j+jj,k+kk);
+                            int iCell2=index( 
+                                pbc(  i+ii,_shape[0]),
+                                pbc(j+jj,_shape[1]),
+                                pbc(k+kk,_shape[2])  );
                             bool found=false;
 
                             for(int t=0;t<nCellsNeighbourhood();t++)
@@ -215,6 +161,7 @@ bool lattice<3>::checkNeighbourIndexing()
 
                                 if (iCell2Check==iCell2)
                                 {
+                                    
                                     found=true;
                                 }
                             }
@@ -223,6 +170,10 @@ bool lattice<3>::checkNeighbourIndexing()
                             {
                                 if (found)
                                 {
+                                    std::cout << i << " " <<  j << " " << k<<std::endl;
+                                    std::cout << i + ii  << " " <<  j  + jj << " " << k + kk<< std::endl;
+                                    
+                                    
                                     return false;
                                 }   
                             }
@@ -230,7 +181,8 @@ bool lattice<3>::checkNeighbourIndexing()
                             {
                                 if (!found)
                                 {
-                                    std::cout << ii << " " << jj << " " << kk << std::endl;
+                                    std::cout << i << " " <<  j << " " << k<<std::endl;
+                                    std::cout << ((int)i + ii )  << " " <<  j + jj << " " << k + kk<< std::endl;
                                     return false;
                                 }
                             }                            
@@ -245,8 +197,8 @@ template<>
 bool lattice<2>::checkNeighbourIndexing()
 {
 
-    for (auto  i=lowIndex(0);i<=highIndex(0);i++)
-        for (auto  j=lowIndex(1);j<=highIndex(1);j++)
+    for (int  i=lowIndex(0);i<=highIndex(0);i++)
+        for (int  j=lowIndex(1);j<=highIndex(1);j++)
             {
 
                 auto  iCell = index(i,j);
@@ -254,7 +206,7 @@ bool lattice<2>::checkNeighbourIndexing()
                 for (int ii=-1;ii<=1;ii++)
                     for (int jj=-1;jj<=1;jj++)
                         {
-                            int iCell2=index(i+ii,j+jj);
+                            int iCell2=index( pbc(i+ii,_shape[0]),pbc(j+jj,_shape[1]));
                             bool found=false;
 
                             for(int t=0;t<nCellsNeighbourhood();t++)

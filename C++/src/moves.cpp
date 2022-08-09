@@ -5,21 +5,7 @@
 
 namespace mesh
 {
-    void clusterOnLattice::moveToCluster(index_t iParticle)
-        {
-            auto iCell = _free->cellIndex(iParticle);
-            _cluster->add(iParticle,iCell);
-            _free->remove(iParticle);
-        }
 
-    void diffusionMove::move(index_t iParticle,state_t & state, index_t iCell2 )
-    {
-
-        state.getFree().move(iParticle,iCell2);
-
-        updateState(iParticle,state);
-
-    }
 
     void diffusionMove::move(index_t iParticle,state_t & state, randState_t & randG )
     {
@@ -27,40 +13,118 @@ namespace mesh
 
         _distribution.generate(&iNeighbour, (&iNeighbour)+1,randG);
 
-        std::cout << iNeighbour << std::endl;
         auto iCell=state.getFree().cellIndex(iParticle);
         auto iCell2 = state.getFree().getLattice().getNeighbour(iCell,iNeighbour);
 
-
-        move(iParticle,state,iCell2);
-
+        state.getFree().move(iParticle,iCell2);
 
     }
 
-
-
-    void diffusionMove::updateState(index_t iParticle,state_t & state )
+     void diffusionMove::move( state_t & state, randState_t & randG )
     {
-        auto iCell = state.getFree().cellIndex(iParticle);
+        int iNeighbour;
 
-        auto & lattice = state.getCluster().getLattice();
+        for(auto it=state.getFree().begin();it!=state.getFree().end();it++)
+        {
+            move( it->first,state,randG);
+        }
 
+    }
 
+    
+
+    bool clusterOnLattice::isCloseToCluster(index_t iCell)
+    {
+        auto & lattice = getCluster().getLattice();
 
         for(int i=0;i<lattice.nCellsNeighbourhood();i++)
         {
             
             auto iCellN=lattice.getNeighbour(iCell,i);
-            if (state.getCluster().getCells()[iCellN].nParticles()!=0 and (iCellN!= iCell))
+            if (getCluster().getCells()[iCellN].nParticles()!=0 and (iCellN!= iCell))
             {
-                //std::cout << iCell<< " " <<iCellN <<std::endl;
-                state.moveToCluster(iParticle);
-                break;
+                return true;
+                
             }
 
         }
 
+        return false;
+
     }
+
+
+    void clusterOnLattice::updateClusterAssignment()
+    {
+
+        for (auto it = _free->begin();it!= _free->end();it++)
+        {
+            auto iCell=it->second;
+            auto iParticle=it->first;
+
+        
+            assert( iCell < getFree().getLattice().size());
+
+            assignToCluster(iCell);
+
+        }
+
+
+        getFree().removeInvalidated();
+
+    }
+
+    void clusterOnLattice::updateClusterAssignment( size_t iParticle)
+    {
+        auto iCell = getFree().cellIndex(iParticle);
+        
+        if (isCloseToCluster(iCell))
+        {
+            getFree().remove(iParticle);
+            getCluster().add(iParticle,iCell);
+        }
+    }
+
+
+
+    void clusterOnLattice::assignToCluster( size_t iCell)
+    {
+        const auto & cell = getFree().getCells()[iCell];
+
+        if ( (not cell.isValid() ) or (cell.nParticles()==0) )
+        {
+            return;
+        }
+
+        bool toMark = isCloseToCluster(iCell);
+        if (toMark)
+        {
+            
+            for(int i=0;i<cell.nParticles();i++)
+            {
+                getCluster().add( cell[i] , iCell );
+            }
+
+            getFree().invalidateCell(iCell);
+
+            auto & lattice = getFree().getLattice();
+
+            for (int t=0;t<lattice.nCellsNeighbourhood();t++)
+            {
+                auto iCell2= lattice.getNeighbour(iCell,t);
+            
+                assignToCluster(iCell2);
+            }
+
+
+        }
+
+    }
+
+
+
+
+
 
 
 
