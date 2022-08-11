@@ -6,7 +6,7 @@
 
 TEST( lattice , init3d)
 {
-    lattice<3> lattice3d( {200,50,100},{-1,-1,-1},{1,1,1});
+    mesh::lattice<3> lattice3d( {200,50,100} );
 
     ASSERT_TRUE(lattice3d.checkNeighbourIndexing() );
 
@@ -27,13 +27,21 @@ TEST( lattice , init3d)
 
     ASSERT_TRUE(found);
 
+    auto [i,j,k] = lattice3d.indices(lattice3d.index(4,6,8) );
+
+    ASSERT_EQ(i,4);
+    ASSERT_EQ(j,6);
+    ASSERT_EQ(k,8);
+    
+
+
     
 };
 
 
 TEST( lattice , init2d)
 {
-    lattice<2> lattice2d( {100,100},{-1,-1},{1,1});
+    mesh::lattice<2> lattice2d( {100,100});
     ASSERT_TRUE(lattice2d.checkNeighbourIndexing() );
 
    
@@ -51,6 +59,11 @@ TEST( lattice , init2d)
         }
     }
 
+    auto [i,j] = lattice2d.indices(lattice2d.index(4,6) );
+
+    ASSERT_EQ(i,4);
+    ASSERT_EQ(j,6);
+
     ASSERT_TRUE(found);
 
 };
@@ -61,9 +74,10 @@ TEST( particles , D3)
 {
     
     size_t N = 100;
-    auto lattice3d=std::make_shared<lattice<3> >( std::array<size_t,3>{100,100,100},std::array<real_t,3>{-1,-1,-1},std::array<real_t,3>{1,1,1});
-    
-    auto free = particles<3>(lattice3d);
+    auto lattice3d=std::make_shared<mesh::lattice<3> >( std::array<size_t,3>{100,100,100} );
+
+
+    auto free = mesh::particles<3>(lattice3d);
 
     ASSERT_EQ(free.size(),0);
 
@@ -111,20 +125,16 @@ TEST( particles , D3)
 
 };
 
-
 #include "../src/moves.h"
 
-
-TEST( particles , cluster )
+TEST( particles , cluster2D )
 {
     
     size_t N = 100;
-    auto mesh=std::make_shared<lattice<DIMENSIONS> >( std::array<size_t,DIMENSIONS> {TRUNC(100,100,100)},
-    std::array<real_t,DIMENSIONS>{TRUNC(-1,-1,-1)},
-    std::array<real_t,DIMENSIONS>{ TRUNC(1,1,1)});
-    
-    auto free = std::make_shared< particles<DIMENSIONS> >( mesh);
-    auto cluster = std::make_shared< particles<DIMENSIONS> >(mesh);
+    auto mesh=std::make_shared<mesh::lattice<2> >( std::array<size_t,2> {100,100});
+
+    auto free = std::make_shared< mesh::particles<DIMENSIONS> >( mesh);
+    auto cluster = std::make_shared< mesh::particles<DIMENSIONS> >(mesh);
     free->resize(N);
     cluster->resize(N);
 
@@ -140,8 +150,8 @@ TEST( particles , cluster )
 
     free->add(0, mesh->index(5,8));
     cluster->add(1, mesh->index(6,8));
-     mesh::state_t state(free,cluster);
-    
+    mesh::state_t<2> state(free,cluster);
+
     auto iCell = free->cellIndex(0);
     free->remove(0);
 /*
@@ -156,18 +166,110 @@ TEST( particles , cluster )
  */
 }
 
+TEST( particles , cluster3D )
+{
+    
+    size_t N = 100;
+    auto mesh=std::make_shared<mesh::lattice<3> >( std::array<size_t,3> {100,100,100});
+
+    auto free = std::make_shared< mesh::particles<3> >( mesh);
+    auto cluster = std::make_shared< mesh::particles<3> >(mesh);
+    free->resize(N);
+    cluster->resize(N);
+
+    ASSERT_EQ(free->size(),0);
+    ASSERT_EQ(cluster->size(),0);
+
+   
+    for ( size_t i=0;i<mesh->size();i++)
+    {
+        auto n2= cluster->getCells()[i].nParticles();    
+        ASSERT_EQ(n2,0);
+    }
+
+    free->add(0, mesh->index(5,8,3));
+    cluster->add(1, mesh->index(6,8,3));
+    mesh::state_t<3> state(free,cluster);
+
+    auto iCell = free->cellIndex(0);
+    free->remove(0);
+/*
+    cluster->add(0,iCell);
+    
+
+    ASSERT_EQ(free->size(),0);
+    ASSERT_EQ(cluster->size(),2);
+
+    ASSERT_EQ(cluster->cellIndex(0) ,  mesh->index(5,8) );
+    ASSERT_EQ(cluster->cellIndex(1) ,  mesh->index(6,8) );
+ */
+}
+
+
+TEST( particles, move )
+{
+     size_t N = 1000,NX=30,NY=10;
+    auto lattice=std::make_shared<mesh::lattice<2> >( std::array<size_t,2> { NX,NY} );
+
+    mesh::particles<2> free( lattice);
+    randState_t randG(567);
+
+    mesh::addRandom( free , N, randG,0);
+
+    int nMoves=100;
+
+    std::vector<mesh::index_t> iX(nMoves*N);
+    std::vector<mesh::index_t> iY(nMoves*N);
+
+    randomGenerator::uniformIntDistribution<size_t> disX(0,NX-1);
+    randomGenerator::uniformIntDistribution<size_t> disY(0,NY-1);
+
+    disX.generate(iX.begin(),iX.end(),randG);
+    disY.generate(iY.begin(),iY.end(),randG);
+
+    ASSERT_TRUE(free.isCoherent() );
+
+
+    size_t k=0;
+    for(int t=0;t<nMoves;t++)
+    {
+        for(int iParticle=0;iParticle<N;iParticle++)
+        {
+            auto k = t*N + iParticle;
+            free.move(iParticle,lattice->index(iX[ k],iY[k]));
+        }
+
+        for(int iParticle=0;iParticle<N;iParticle++)
+        {
+            auto k = t*N + iParticle;
+            
+            auto iCell=free.cellIndex(iParticle);
+            ASSERT_EQ(iCell,lattice->index(iX[ k],iY[k]));
+
+
+
+        }
+
+        ASSERT_TRUE(free.isCoherent() );
+        
+    }
+
+
+}
+
+
 TEST( moves , diffusion )
 {
 
     size_t N = 100;
-    auto mesh=std::make_shared<lattice<DIMENSIONS> >( std::array<size_t,DIMENSIONS> {TRUNC(100,100,100)},
-    std::array<real_t,DIMENSIONS>{TRUNC(-1,-1,-1)},
-    std::array<real_t,DIMENSIONS>{ TRUNC(1,1,1)});
+    auto mesh=std::make_shared<mesh::lattice<2> >( std::array<size_t,2> {100,100} );
+
     
-    auto free = std::make_shared< particles<DIMENSIONS> >( mesh);
-    auto cluster = std::make_shared< particles<DIMENSIONS> >(mesh);
+    auto free = std::make_shared< mesh::particles<2> >( mesh);
+    auto cluster = std::make_shared< mesh::particles<2> >(mesh);
     free->resize(N);
     cluster->resize(N);
+
 
     ASSERT_EQ(free->size(),0);
     ASSERT_EQ(cluster->size(),0);
@@ -175,9 +277,9 @@ TEST( moves , diffusion )
 
     free->add(0, mesh->index(5,8));
     cluster->add(1, mesh->index(6,8));
-    mesh::state_t state(free,cluster);
+    mesh::state_t<2> state(free,cluster);
     
-    mesh::diffusionMove move;
+    mesh::diffusionMove<2> move;
 
     randState_t randG(567);
 
@@ -245,69 +347,212 @@ TEST( moves , diffusion )
 
     }
 
+
+
+    // test diffusion to random position of many particles
+
+
 }
 
-TEST(moves,initCluster)
+TEST(particles, tensor)
 {
-    size_t N = 4000;
-    auto mesh=std::make_shared<lattice<DIMENSIONS> >( std::array<size_t,DIMENSIONS> {TRUNC(100,100,100)},
-    std::array<real_t,DIMENSIONS>{TRUNC(-1,-1,-1)},
-    std::array<real_t,DIMENSIONS>{ TRUNC(1,1,1)});
+    size_t N = 100;
+    mesh::index_t NX=100, NY=100;
 
-    auto free = std::make_shared< particles<DIMENSIONS> >( mesh);
-    auto cluster = std::make_shared< particles<DIMENSIONS> >(mesh);
+    auto lattice=std::make_shared<mesh::lattice<2> >( std::array<mesh::index_t,2>{NX,NY} );
 
-    mesh::state_t state(free,cluster);
-
+    auto free = std::make_shared< mesh::particles<2> >( lattice);
+    
     randState_t randG(567);
 
-    initRandom( state.getFree() , N ,randG );
-    initRandom( state.getCluster() , 1 ,randG );
+    Eigen::Tensor<int,2> freeData(N,2);
+
+    randomGenerator::uniformIntDistribution<int> distributionX(0,NX-1);
+    randomGenerator::uniformIntDistribution<int> distributionY(0,NY-1);
 
 
-    mesh::diffusionMove move;
+    distributionX.generate(freeData.data() , freeData.data() + N  ,randG);
+    distributionY.generate(freeData.data() + N, freeData.data() + 2*N  ,randG);
 
-    state.updateClusterAssignment();
+    free->add(freeData);
 
-    // check all free particles do not have a neighbour in the cluster
-    for (auto it = free->begin();it != free->end();it++)
+    ASSERT_EQ(  free->nParticles(),N);
+    int k=0;
+    for(auto it=free->begin();it!=free->end();it++)
     {
-        for(int ii=0;ii<mesh->nCellsNeighbourhood() ;ii++ )
+        auto [i,j] = lattice->indices( it->second);
+        ASSERT_EQ( freeData(it->first,0 ) , i    );
+        ASSERT_EQ( freeData(it->first,1 ) , j    );
+        k++;
+    }
+    ASSERT_EQ(k,N);
+
+    auto freeData2=free->toTensor();
+
+
+    ASSERT_EQ( freeData2.dimensions()[0] , N );
+    ASSERT_EQ( freeData2.dimensions()[1] , 2 );
+    
+
+    for(int i=0;i<N;i++)
+    {
+        ASSERT_EQ( freeData(i,0) , freeData2(i,0) );
+    }
+
+
+}
+
+template<int DIM>
+void  testClusterOwnership( const mesh::state_t<DIM> & state )
+{
+    const auto & free = state.getFree();
+    const auto & cluster = state.getCluster();
+    const auto & lattice = free.getLattice();
+
+
+      // check all free particles do not have a neighbour in the cluster
+    for (auto it = free.begin();it != free.end();it++)
+    {
+        for(int ii=0;ii<lattice.nCellsNeighbourhood() ;ii++ )
         {
-            auto iCell2 = mesh->getNeighbour(  it->second , ii );
-            ASSERT_LT(iCell2,mesh->size());
+            auto iCell2 = lattice.getNeighbour(  it->second , ii );
+            ASSERT_LT(iCell2,lattice.size());
             ASSERT_GE(iCell2, 0 );
             
-            auto n2= cluster->getCells()[iCell2].nParticles();
+            auto n2= cluster.getCells()[iCell2].nParticles();
 
             ASSERT_EQ(n2,0);
         }
     }
 
-
-    for (auto it = cluster->begin();it != cluster->end();it++)
+    if (cluster.nParticles() > 1 )
     {
-        bool found=false;
-        for(int ii=0;ii<mesh->nCellsNeighbourhood() ;ii++ )
+        for (auto it = cluster.begin();it != cluster.end();it++)
         {
-            auto iCell2 = mesh->getNeighbour(  it->second , ii );
-            ASSERT_LT(iCell2,mesh->size());
-            ASSERT_GE(iCell2, 0 );
-            
-            auto n2= cluster->getCells()[iCell2].nParticles();
-
-            if (n2 != 0)
+            bool found=false;
+            for(int ii=0;ii<lattice.nCellsNeighbourhood() ;ii++ )
             {
-                found =true;
-            }
-        }
+                auto iCell2 = lattice.getNeighbour(  it->second , ii );
+                ASSERT_LT(iCell2,lattice.size());
+                ASSERT_GE(iCell2, 0 );
+                
+                auto n2= cluster.getCells()[iCell2].nParticles();
 
-        ASSERT_TRUE(found);
+                if (n2 != 0)
+                {
+                    found =true;
+                }
+            }
+
+            ASSERT_TRUE(found);
+        }
     }
 
 
+}
 
 
+TEST( cluster,ownership)
+{
+    size_t N = 4000;
+    auto mesh=std::make_shared<mesh::lattice<2> >( std::array<size_t,2> {100,100} );   
+
+
+    randState_t randG(567);
+
+    for(int t=0;t<40;t++)
+        {
+            auto free = std::make_shared< mesh::particles<2> >( mesh);
+            auto cluster = std::make_shared< mesh::particles<2> >(mesh);
+
+            mesh::state_t<2> state(free,cluster);
+            mesh::addRandom( state.getFree() , N ,randG , 1 );
+            mesh::addRandom( state.getCluster() , 1 ,randG );
+            state.updateClusterAssignment();
+
+            testClusterOwnership( state );
+
+            ASSERT_TRUE(state.getFree().isCoherent() );
+            ASSERT_TRUE(state.getCluster().isCoherent() );
+        
+            
+        }
+}
+
+
+
+TEST( moves, diffusion_collective)
+{
+    size_t N = 4000;
+    auto lattice=std::make_shared<mesh::lattice<2> >( std::array<size_t,2> {100,100} );
+
+    randState_t randG(567);
+
+    
+    auto free = std::make_shared< mesh::particles<2> >( lattice);
+    auto cluster = std::make_shared< mesh::particles<2> >(lattice);
+
+    mesh::state_t<2> state(free,cluster);
+
+    mesh::diffusionMove<2> move;
+
+    mesh::addRandom( state.getFree() , N ,randG, 1 );
+    mesh::addRandom( state.getCluster() , 1 ,randG );
+
+
+    for(int t=0;t<100;t++)
+    {
+        move.move(state,randG);
+        state.updateClusterAssignment();
+
+        testClusterOwnership(state);
+
+        ASSERT_TRUE(state.getFree().isCoherent() );
+        ASSERT_TRUE(state.getCluster().isCoherent() );
+        
+
+        
+    }    
+
+    
+
+}
+
+
+
+
+TEST( moves, diffusion_collective_3d)
+{
+    size_t N = 4000;
+    auto lattice=std::make_shared<mesh::lattice<3> >( std::array<size_t,3> {100,100,100} );
+
+    randState_t randG(567);
+
+    
+    auto free = std::make_shared< mesh::particles<3> >( lattice);
+    auto cluster = std::make_shared< mesh::particles<3> >(lattice);
+
+    mesh::state_t<3> state(free,cluster);
+
+    mesh::diffusionMove<3> move;
+
+    mesh::addRandom( state.getFree() , N ,randG, 1 );
+    mesh::addRandom( state.getCluster() , 1 ,randG );
+
+
+    for(int t=0;t<100;t++)
+    {
+        move.move(state,randG);
+        state.updateClusterAssignment();
+
+        testClusterOwnership(state);
+
+        ASSERT_TRUE(state.getFree().isCoherent() );
+        ASSERT_TRUE(state.getCluster().isCoherent() );
+        
+    }    
+
+    
 
 }
 

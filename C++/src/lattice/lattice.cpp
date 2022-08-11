@@ -1,6 +1,9 @@
 #include "lattice.h"
 #include <iostream>
 
+
+using namespace mesh;
+
 auto nNeighbours(int dim)
 {
     int _nNeighboursPerCell=0;
@@ -26,11 +29,9 @@ auto nNeighbours(int dim)
 
 
 template<int DIM>
-lattice<DIM>::lattice(std::array<size_t,DIM>  shape, std::array<real_t,DIM> lowerEdge, std::array<real_t,DIM > higherEdge,std::array<size_t,DIM> nGhosts) :
+lattice<DIM>::lattice(std::array<size_t,DIM>  shape,std::array<size_t,DIM> nGhosts) :
 _shape(shape),
 _nGhosts(nGhosts),
-_lowerEdge(lowerEdge),
-_higherEdge(higherEdge),
  periodic(true),
  _nNeighboursPerCell(nNeighbours(DIM))
 {
@@ -46,8 +47,6 @@ void lattice<DIM>::initialize()
 
     for (int d=0;d<DIM;d++)
         {
-            _lBox[d]=_higherEdge[d]-_lowerEdge[d];
-            _lBoxInverse[d]=1./_lBox[d];
             _extendedShape[d]=_shape[d] + 2*_nGhosts[d];
             _size*=_shape[d];
             _extendedSize*=_extendedShape[d];

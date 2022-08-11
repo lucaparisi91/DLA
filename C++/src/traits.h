@@ -45,11 +45,12 @@ template<int DIM> class particles;
 namespace mesh
 {
     
-    class clusterOnLattice;
-    using state_t = clusterOnLattice;
-    using particles_t = particles<2>;
     using index_t = size_t;
-    
+    template<int DIM> class clusterOnLattice;
+
+
+    template<int DIM>
+    using state_t = class clusterOnLattice<DIM>;
 };
 
 

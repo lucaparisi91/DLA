@@ -5,52 +5,9 @@
 #include <iostream>
 #include "DLA.h"
 #include <memory>
-
-namespace py = pybind11;
+#include "py_tools.h"
 using namespace offMesh;
 
-
-auto toTensor(const py::array_t<double> & x)
-{
-    
-    py::buffer_info info = x.request();
-    if (info.shape.size() != 2)
-    {
-        throw std::runtime_error("Numpy array should have rank 2");
-    }
-    auto xRaw = x.unchecked<2>();
-
-    Eigen::Tensor<real_t,2> tensor(info.shape[0],info.shape[1]);
-
-    size_t k=0;
-    for(int j=0;j<info.shape[1];j++)
-        for(int i=0;i<info.shape[0];i++)
-            {
-                tensor(i,j)=xRaw(i,j);
-                k++;
-            }
-    return tensor;
-}
-
-
-auto toVector(const py::array_t<double> & x)
-{
-    
-    py::buffer_info info = x.request();
-    if (info.shape.size() != 1)
-    {
-        throw std::runtime_error("Numpy array should have rank 1");
-    };
-    auto xRaw = x.unchecked<1>();
-    
-    std::vector<real_t> xCpp(info.shape[0]);
-
-    for(int i=0;i<info.shape[0];i++)
-        {
-            xCpp[i]=xRaw(i);
-        }
-    return xCpp;
-}
 
 auto toParticles(const py::array_t<double> & freePy,const py::array_t<double> & clusterPy)
 {
@@ -93,23 +50,6 @@ auto toParticles(const py::array_t<double> & freePy,const py::array_t<double> & 
 
 }
 
-
-
-
-
-
-
-
-auto toArray(const Eigen::Tensor<real_t,2> & tensor  )
-{
-    auto NX=tensor.dimensions()[0];
-    auto NY=tensor.dimensions()[1];
-
-    return py::array_t<double>(
-            {NX,NY}, // shape
-            {sizeof(double) , sizeof(double)*NX}, // F-style contiguous
-            tensor.data() );
-}
 
 
 auto freeParticlestoArray(const cluster_t & particles  )
@@ -164,8 +104,8 @@ class py_dla
         py::array_t<real_t> sigma
      ) : randG(567)
     {
-        _free=toTensor(x);
-        _cluster=toTensor(y);
+        _free=toTensor<double,2>(x);
+        _cluster=toTensor<double,2>(y);
         _radius=radius;
         _box=toVector(box);
         _sigma=toVector(sigma);

@@ -8,7 +8,7 @@
             "name": "Unit Tests - Debug",
             "type": "cppdbg",
             "request": "launch",
-            "args" : [ "--gtest_filter=moves.initCluster" ],
+            "args" : [ "--gtest_filter=particles.move" ],
             "program": "/home/luca/source/DLA/build-debug/tst/tst",
             "cwd": "/home/luca/source/DLA/build-debug"
         }
